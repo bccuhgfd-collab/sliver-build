@@ -1,4 +1,4 @@
-name: Sliver_ARM64_Final_Success
+name: Sliver_ARM64_Ultimate_Victory
 on: [push]
 
 jobs:
@@ -16,20 +16,32 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Direct Build Strategy
+      - name: Force Assets & Build
         env:
           CGO_ENABLED: 0
           GOOS: linux
           GOARCH: arm64
         run: |
-          go mod download
-          # بدلاً من التوليد الكامل، سنقوم ببناء السيرفر مباشرة
-          # وتجاهل أخطاء الـ Assets غير الضرورية للتشغيل الأساسي
+          # الانتقال لمجلد السيرفر
           cd server
-          go build -v -trimpath -ldflags "-s -w" -o ../sliver-server-arm64 .
+          
+          # 1. حقن ملف assets وهمي في كل المجلدات التي تطلبه
+          # هذه الحركة هي "المفتاح" الذي سيفتح الحصن
+          for dir in $(grep -r "assetsFs" . | cut -d: -f1 | xargs -n1 dirname | sort -u); do
+            mkdir -p $dir/assets
+            echo "package $(basename $dir)" > $dir/assets.go
+            echo "import \"embed\"" >> $dir/assets.go
+            echo "//go:embed assets/*" >> $dir/assets.go
+            echo "var assetsFs embed.FS" >> $dir/assets.go
+            touch $dir/assets/placeholder
+          done
 
-      - name: Upload
+          # 2. بناء السيرفر بتوقيع فريد (Stealth)
+          go mod download
+          go build -v -trimpath -ldflags "-s -w -buildid=" -o ../sliver-server-arm64 .
+
+      - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
-          name: sliver-real-arm64
+          name: sliver-final-arm64
           path: sliver-server-arm64
