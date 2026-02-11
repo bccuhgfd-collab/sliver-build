@@ -21,13 +21,14 @@ jobs:
           export TOOLCHAIN=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64
           export CC=$TOOLCHAIN/bin/aarch64-linux-android29-clang
           
-          # تقليل عدد العمليات المتوازية لتجنب الـ Crash
-          export GOMAXPROCS=2
+          # توجيه المترجم لمكتبات الأندرويد الأساسية بشكل مباشر
+          export CGO_LDFLAGS="-Wl,-s -Wl,--allow-shlib-undefined"
           
           go mod download
           
-          # بناء السيرفر مع تعطيل الـ PIE مؤقتاً لضمان التوافق
+          # البناء مع تعطيل الميزات التي تسبب تعارضات في الـ Binary النهائي
           go build -v -trimpath \
+            -tags "netgo osusergo static_build no_sqlite_build" \
             -ldflags "-s -w -extldflags '-static'" \
             -o sliver-server-android ./server
       - uses: actions/upload-artifact@v4
