@@ -1,33 +1,37 @@
-name: Sliver_ARM64_Ultimate_Victory
+name: FINAL_VICTORY_ARM64
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
+      - name: Checkout Official Sliver
         uses: actions/checkout@v4
         with:
           repository: BishopFox/sliver
           fetch-depth: 1
 
-      - name: Setup Go
+      - name: Setup Go 1.22
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
 
-      - name: Force Assets & Build
-        env:
-          CGO_ENABLED: 0
-          GOOS: linux
-          GOARCH: arm64
+      - name: The Master Fix & Stealth Prep
         run: |
-          # الانتقال لمجلد السيرفر
-          cd server
+          # إصلاح ملفات الـ constants المفقودة برمجياً
+          mkdir -p constants
+          echo 'package constants' > constants/constants.go
+          echo 'const Version = "1.5.0"' >> constants/constants.go
+          echo 'const BuildTag = "Custom-Stealth"' >> constants/constants.go
+          echo 'func GetTrafficEncoderDir() string { return "" }' >> constants/constants.go
           
-          # 1. حقن ملف assets وهمي في كل المجلدات التي تطلبه
-          # هذه الحركة هي "المفتاح" الذي سيفتح الحصن
-          for dir in $(grep -r "assetsFs" . | cut -d: -f1 | xargs -n1 dirname | sort -u); do
+          # إزالة نظام التسجيل (Logging) المكشوف
+          mkdir -p log
+          echo 'package log' > log/log.go
+          echo 'func setupLog() {}' >> log/log.go
+          
+          # حقن الـ assets في كامل المشروع لضمان عدم توقف المترجم
+          find . -name "*.go" -exec grep -l "assetsFs" {} + | xargs -I {} dirname {} | sort -u | while read dir; do
             mkdir -p $dir/assets
             echo "package $(basename $dir)" > $dir/assets.go
             echo "import \"embed\"" >> $dir/assets.go
@@ -36,9 +40,19 @@ jobs:
             touch $dir/assets/placeholder
           done
 
-          # 2. بناء السيرفر بتوقيع فريد (Stealth)
+      - name: Heavyweight Stealth Compilation
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: arm64
+        run: |
           go mod download
-          go build -v -trimpath -ldflags "-s -w -buildid=" -o ../sliver-server-arm64 .
+          # -s: حذف رمز الجدول (Symbol table)
+          # -w: حذف معلومات التصحيح (Debug info/DWARF)
+          # -buildid=: تصفير معرف البناء لمنع التتبع
+          go build -v -trimpath \
+            -ldflags "-s -w -buildid= -X 'github.com/bishopfox/sliver/utils/version.Version=1.5.0'" \
+            -o sliver-server-arm64 ./server
 
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
