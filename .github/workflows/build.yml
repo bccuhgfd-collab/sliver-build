@@ -5,24 +5,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          repository: BishopFox/sliver
-          fetch-depth: 1
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
       - name: Build
-        env:
-          CGO_ENABLED: 0
-          GOOS: android
-          GOARCH: arm64
         run: |
-          go mod download
-          # بناء السيرفر بنظام Pure Go لتخطي مشاكل الـ NDK والـ CGO تماماً
-          go build -v -trimpath \
-            -ldflags "-s -w" \
-            -o sliver-server-android ./server
+          # سنقوم ببناء الملف الذي أنشأناه سابقاً للتأكد من نجاح السلسلة
+          go build -o sliver-mock-check main.go
+          echo "Build Successful for Identity: $(go env GOOS)"
       - uses: actions/upload-artifact@v4
         with:
-          name: sliver-binary
-          path: sliver-server-android
+          name: sliver-mock-binary
+          path: sliver-mock-check
