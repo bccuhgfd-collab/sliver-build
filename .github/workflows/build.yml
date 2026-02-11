@@ -1,0 +1,26 @@
+name: Cloud Build Sliver
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Sliver Original (Super Fast)
+        run: |
+          git clone --depth 1 https://github.com/BishopFox/sliver.git .
+          
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Compile for Android
+        run: |
+          go mod download
+          # هنا سيتم بناء السيرفر الأصلي أولاً للتأكد من البيئة
+          GOOS=android GOARCH=arm GOARM=7 go build -v -o sliver-server-realme ./server
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: REAL-SERVER
+          path: sliver-server-realme
