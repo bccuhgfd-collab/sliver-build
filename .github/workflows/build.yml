@@ -1,22 +1,27 @@
-name: Sliver_ARM64_Release
+name: Sliver_ARM64_Full_Server
 on: [push]
 jobs:
-  build_arm64:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Sliver Source
+        uses: actions/checkout@v4
+        with:
+          repository: BishopFox/sliver
+          fetch-depth: 1
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: Build for ARMv8
+      - name: Full Build for ARMv8
         env:
           CGO_ENABLED: 0
           GOOS: linux
           GOARCH: arm64
         run: |
-          go build -v -trimpath -ldflags "-s -w" -o sliver-arm64 main.go
-          echo "ARMv8 Binary Created Successfully"
+          go mod download
+          # بناء السيرفر الحقيقي من مجلد server
+          go build -v -trimpath -ldflags "-s -w" -o sliver-server-arm64 ./server
       - uses: actions/upload-artifact@v4
         with:
-          name: sliver-arm64-tool
-          path: sliver-arm64
+          name: sliver-real-tool
+          path: sliver-server-arm64
