@@ -19,11 +19,12 @@ jobs:
         run: |
           go mod download
           export CGO_ENABLED=1
-          export CC=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang
           export GOOS=android
           export GOARCH=arm
           export GOARM=7
-          go build -v -trimpath -ldflags "-s -w" -o sliver-server-realme ./server
+          export CC=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang
+          
+          go build -v -p 2 -trimpath -ldflags "-s -w -extldflags=-static" -o sliver-server-realme ./server
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
