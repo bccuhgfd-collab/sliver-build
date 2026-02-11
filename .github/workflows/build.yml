@@ -4,7 +4,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Sliver Source
+      - name: Checkout Source
         uses: actions/checkout@v4
         with:
           repository: BishopFox/sliver
@@ -12,14 +12,20 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: Full Build for ARMv8
+      - name: Prepare and Force Build
         env:
           CGO_ENABLED: 0
           GOOS: linux
           GOARCH: arm64
         run: |
           go mod download
-          # بناء السيرفر الحقيقي من مجلد server
+          # توليد ملفات الـ assets الضرورية لتخطي خطأ التحميل
+          mkdir -p server/assets
+          echo "package assets" > server/assets/assets.go
+          echo "import \"embed\"" >> server/assets/assets.go
+          echo "//go:embed * " >> server/assets/assets.go
+          echo "var AssetsFs embed.FS" >> server/assets/assets.go
+          # محاولة بناء السيرفر
           go build -v -trimpath -ldflags "-s -w" -o sliver-server-arm64 ./server
       - uses: actions/upload-artifact@v4
         with:
