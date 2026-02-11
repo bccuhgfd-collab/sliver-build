@@ -4,21 +4,27 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Clone Sliver Original (Super Fast)
-        run: |
-          git clone --depth 1 https://github.com/BishopFox/sliver.git .
-          
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          repository: BishopFox/sliver
+          fetch-depth: 1
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
-      - name: Compile for Android
+      - name: Build Android Server
         run: |
           go mod download
-          # هنا سيتم بناء السيرفر الأصلي أولاً للتأكد من البيئة
-          GOOS=android GOARCH=arm GOARM=7 go build -v -o sliver-server-realme ./server
-          
+          export CGO_ENABLED=1
+          export CC=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang
+          export GOOS=android
+          export GOARCH=arm
+          export GOARM=7
+          go build -v -trimpath -ldflags "-s -w" -o sliver-server-realme ./server
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
