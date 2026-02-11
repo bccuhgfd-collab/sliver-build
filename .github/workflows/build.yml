@@ -1,6 +1,5 @@
 name: FINAL_VICTORY_ARM64
-on: [push]
-
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -8,54 +7,32 @@ jobs:
       - name: Checkout Official Sliver
         uses: actions/checkout@v4
         with:
-          repository: BishopFox/sliver
-          fetch-depth: 1
+          repository: 'bishopfox/sliver'
+          ref: 'master'
 
       - name: Setup Go 1.22
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v4
         with:
           go-version: '1.22'
 
       - name: The Master Fix & Stealth Prep
         run: |
-          # إصلاح ملفات الـ constants المفقودة برمجياً
-          mkdir -p constants
-          echo 'package constants' > constants/constants.go
-          echo 'const Version = "1.5.0"' >> constants/constants.go
-          echo 'const BuildTag = "Custom-Stealth"' >> constants/constants.go
-          echo 'func GetTrafficEncoderDir() string { return "" }' >> constants/constants.go
+          # حقن الدوال في أول ملف Go يجده لضمان التعريف العالمي
+          TARGET_FILE=$(find . -name "version.go" | head -n 1)
+          if [ -z "$TARGET_FILE" ]; then TARGET_FILE=$(find . -maxdepth 3 -name "*.go" | head -n 1); fi
+          echo "Injecting into $TARGET_FILE"
+          echo -e "\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return \"\" }" >> "$TARGET_FILE"
           
-          # إزالة نظام التسجيل (Logging) المكشوف
+          # إنشاء مجلد log والملف كاحتياط إضافي
           mkdir -p log
-          echo 'package log' > log/log.go
-          echo 'func setupLog() {}' >> log/log.go
-          
-          # حقن الـ assets في كامل المشروع لضمان عدم توقف المترجم
-          find . -name "*.go" -exec grep -l "assetsFs" {} + | xargs -I {} dirname {} | sort -u | while read dir; do
-            mkdir -p $dir/assets
-            echo "package $(basename $dir)" > $dir/assets.go
-            echo "import \"embed\"" >> $dir/assets.go
-            echo "//go:embed assets/*" >> $dir/assets.go
-            echo "var assetsFs embed.FS" >> $dir/assets.go
-            touch $dir/assets/placeholder
-          done
+          echo -e "package log\n\nfunc setupLog() {}" > log/log.go
 
       - name: Heavyweight Stealth Compilation
-        env:
-          CGO_ENABLED: 0
-          GOOS: linux
-          GOARCH: arm64
         run: |
-          go mod download
-          # -s: حذف رمز الجدول (Symbol table)
-          # -w: حذف معلومات التصحيح (Debug info/DWARF)
-          # -buildid=: تصفير معرف البناء لمنع التتبع
-          go build -v -trimpath \
-            -ldflags "-s -w -buildid= -X 'github.com/bishopfox/sliver/utils/version.Version=1.5.0'" \
-            -o sliver-server-arm64 ./server
-
+          go build -ldflags "-s -w" -o sliver-weapon
+          
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
-          name: sliver-final-arm64
-          path: sliver-server-arm64
+          name: sliver-weapon
+          path: ./sliver-weapon
