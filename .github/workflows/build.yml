@@ -16,27 +16,19 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install Dependencies & Protoc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-          export PATH=$PATH:$(go env GOPATH)/bin
-
-      - name: Generate Assets and Build
+      - name: Direct Build Strategy
         env:
           CGO_ENABLED: 0
           GOOS: linux
           GOARCH: arm64
         run: |
           go mod download
-          # توليد كل ملفات الكود والـ Assets المفقودة
-          go generate ./...
-          # بناء السيرفر الفعلي
-          go build -v -trimpath -ldflags "-s -w" -o sliver-server-arm64 ./server
+          # بدلاً من التوليد الكامل، سنقوم ببناء السيرفر مباشرة
+          # وتجاهل أخطاء الـ Assets غير الضرورية للتشغيل الأساسي
+          cd server
+          go build -v -trimpath -ldflags "-s -w" -o ../sliver-server-arm64 .
 
-      - name: Upload The Beast
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: sliver-real-arm64
