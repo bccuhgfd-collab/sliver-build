@@ -15,19 +15,19 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Build Android Server
+      - name: Build Static Android Server
         run: |
           go mod download
-          export CGO_ENABLED=1
+          # بناء نسخة Static بالكامل تتجاهل مشاكل الـ CGO والـ NDK
+          export CGO_ENABLED=0
           export GOOS=android
           export GOARCH=arm
           export GOARM=7
-          export CC=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang
           
-          # الحل السحري: تقليل العمليات المتوازية لأدنى حد وإضافة خيارات ضغط الذاكرة
-          go build -v -p 1 -trimpath -ldflags "-s -w -X github.com/bishopfox/sliver/util/build.IsProduction=true" -o sliver-server-clean ./server
+          # استخدام الـ tags لإلغاء الميزات التي تسبب مشاكل في الأندرويد
+          go build -v -trimpath -tags "netgo osusergo" -ldflags "-s -w -extldflags=-static" -o sliver-server-clean ./server
 
-      - name: Upload Clean Binary
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: CLEAN-SERVER
