@@ -15,13 +15,6 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler libpcap-dev
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-
       - name: Build Android Server
         run: |
           go mod download
@@ -29,9 +22,10 @@ jobs:
           export GOOS=android
           export GOARCH=arm
           export GOARM=7
-          export CC=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang
+          export CC=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang
           
-          go build -v -trimpath -ldflags "-s -w -extldflags=-static" -o sliver-server-clean ./server
+          # الحل السحري: تقليل العمليات المتوازية لأدنى حد وإضافة خيارات ضغط الذاكرة
+          go build -v -p 1 -trimpath -ldflags "-s -w -X github.com/bishopfox/sliver/util/build.IsProduction=true" -o sliver-server-clean ./server
 
       - name: Upload Clean Binary
         uses: actions/upload-artifact@v4
