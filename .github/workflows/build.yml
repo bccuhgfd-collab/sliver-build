@@ -1,34 +1,41 @@
-name: Ultimate Sliver Build
+name: Sliver Android Static Build
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
+      - name: Checkout Sliver
         uses: actions/checkout@v4
         with:
           repository: BishopFox/sliver
           fetch-depth: 1
 
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
 
-      - name: Build Static Android Server
+      - name: Build
+        env:
+          CGO_ENABLED: 1
+          GOOS: android
+          GOARCH: arm64
         run: |
-          go mod download
-          # بناء نسخة Static بالكامل تتجاهل مشاكل الـ CGO والـ NDK
-          export CGO_ENABLED=0
-          export GOOS=android
-          export GOARCH=arm
-          export GOARM=7
+          # البحث التلقائي عن المترجم في خوادم GitHub
+          export NDK_PATH=$(ls -d $ANDROID_SDK_ROOT/ndk/* | tail -1)
+          export CC=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang
           
-          # استخدام الـ tags لإلغاء الميزات التي تسبب مشاكل في الأندرويد
-          go build -v -trimpath -tags "netgo osusergo" -ldflags "-s -w -extldflags=-static" -o sliver-server-clean ./server
+          echo "Using NDK: $NDK_PATH"
+          echo "Using CC: $CC"
+          
+          go mod download
+          go build -v -trimpath \
+            -tags "netgo osusergo static_build" \
+            -ldflags "-s -w -extldflags '-static'" \
+            -o sliver-server-android ./server
 
-      - name: Upload
+      - name: Upload result
         uses: actions/upload-artifact@v4
         with:
-          name: CLEAN-SERVER
-          path: sliver-server-clean
+          name: sliver-android-binary
+          path: sliver-server-android
