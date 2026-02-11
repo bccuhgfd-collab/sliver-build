@@ -1,47 +1,27 @@
-name: Sliver_Android_Build_With_Swap
+name: Sliver_Android_Final_Peace
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Maximize Build Space (Swap)
-        run: |
-          sudo fallocate -l 4G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          sudo sysctl vm.swappiness=10
-
       - uses: actions/checkout@v4
         with:
           repository: BishopFox/sliver
           fetch-depth: 1
-
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-
       - name: Build
         env:
-          CGO_ENABLED: 1
+          CGO_ENABLED: 0
           GOOS: android
           GOARCH: arm64
         run: |
-          NDK_PATH=$(ls -d $ANDROID_SDK_ROOT/ndk/* | tail -1)
-          export TOOLCHAIN=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64
-          export CC=$TOOLCHAIN/bin/aarch64-linux-android29-clang
-          
-          # إعدادات الربط للسماح بالرموز غير المعرفة مؤقتاً
-          export CGO_LDFLAGS="-Wl,-s -Wl,--allow-shlib-undefined"
-          
           go mod download
-          
-          # البناء مع تعطيل SQLite لضمان الاستقرار
+          # بناء السيرفر بنظام Pure Go لتخطي مشاكل الـ NDK والـ CGO تماماً
           go build -v -trimpath \
-            -tags "netgo osusergo no_sqlite_build" \
-            -ldflags "-s -w -extldflags '-static'" \
+            -ldflags "-s -w" \
             -o sliver-server-android ./server
-
       - uses: actions/upload-artifact@v4
         with:
           name: sliver-binary
