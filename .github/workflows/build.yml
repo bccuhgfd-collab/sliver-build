@@ -1,33 +1,45 @@
-name: Sliver_ARM64_Full_Server
+name: Sliver_ARM64_Autonomous_Build
 on: [push]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
+      - name: Checkout Your Repo
         uses: actions/checkout@v4
-        with:
-          repository: BishopFox/sliver
-          fetch-depth: 1
-      - uses: actions/setup-go@v5
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: Prepare and Force Build
+
+      - name: Autonomous Preparation & Patching
+        run: |
+          # 1. جلب الكود المصدري لـ Sliver
+          git clone --depth 1 https://github.com/BishopFox/sliver source_code
+          
+          # 2. إنشاء ملفات الـ Assets المفقودة (خدعة المترجم)
+          mkdir -p source_code/server/assets
+          cat <<EOT > source_code/server/assets/assets.go
+          package assets
+          import "embed"
+          //go:embed *
+          var AssetsFs embed.FS
+          EOT
+          touch source_code/server/assets/placeholder.txt
+
+      - name: Heavyweight Compilation (ARMv8)
         env:
           CGO_ENABLED: 0
           GOOS: linux
           GOARCH: arm64
         run: |
+          cd source_code
           go mod download
-          # توليد ملفات الـ assets الضرورية لتخطي خطأ التحميل
-          mkdir -p server/assets
-          echo "package assets" > server/assets/assets.go
-          echo "import \"embed\"" >> server/assets/assets.go
-          echo "//go:embed * " >> server/assets/assets.go
-          echo "var AssetsFs embed.FS" >> server/assets/assets.go
-          # محاولة بناء السيرفر
-          go build -v -trimpath -ldflags "-s -w" -o sliver-server-arm64 ./server
-      - uses: actions/upload-artifact@v4
+          go build -v -trimpath -ldflags "-s -w" -o ../sliver-server-arm64 ./server
+
+      - name: Upload Finished Weaponry
+        uses: actions/upload-artifact@v4
         with:
-          name: sliver-real-tool
+          name: sliver-full-arm64
           path: sliver-server-arm64
