@@ -1,24 +1,42 @@
-name: Sliver_ARM64_Universal_Success
+name: Sliver_ARM64_Final_Success
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
+      - name: Checkout Source
         uses: actions/checkout@v4
+        with:
+          repository: BishopFox/sliver
+          fetch-depth: 1
 
-      - name: Build inside Sliver-Builder Container
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install Dependencies & Protoc
         run: |
-          # استخدام حاوية بناء Sliver الرسمية لحل كافة مشاكل التبعيات والـ Assets
-          docker run --rm -v ${{ github.workspace }}:/out bishopfox/sliver-build:latest \
-          /bin/bash -c "git clone --depth 1 https://github.com/BishopFox/sliver /sliver && \
-          cd /sliver && \
-          export GOOS=linux GOARCH=arm64 CGO_ENABLED=0 && \
-          make server && \
-          cp sliver-server /out/sliver-server-arm64"
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          export PATH=$PATH:$(go env GOPATH)/bin
 
-      - name: Upload The Real Beast
+      - name: Generate Assets and Build
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: arm64
+        run: |
+          go mod download
+          # توليد كل ملفات الكود والـ Assets المفقودة
+          go generate ./...
+          # بناء السيرفر الفعلي
+          go build -v -trimpath -ldflags "-s -w" -o sliver-server-arm64 ./server
+
+      - name: Upload The Beast
         uses: actions/upload-artifact@v4
         with:
           name: sliver-real-arm64
