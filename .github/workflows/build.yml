@@ -1,41 +1,36 @@
-name: Sliver Android Static Build
+name: Sliver_Android_Build
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Sliver
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           repository: BishopFox/sliver
           fetch-depth: 1
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-
       - name: Build
         env:
           CGO_ENABLED: 1
           GOOS: android
           GOARCH: arm64
         run: |
-          # البحث التلقائي عن المترجم في خوادم GitHub
-          export NDK_PATH=$(ls -d $ANDROID_SDK_ROOT/ndk/* | tail -1)
-          export CC=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang
+          NDK_PATH=$(ls -d $ANDROID_SDK_ROOT/ndk/* | tail -1)
+          export TOOLCHAIN=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64
+          export CC=$TOOLCHAIN/bin/aarch64-linux-android29-clang
           
-          echo "Using NDK: $NDK_PATH"
-          echo "Using CC: $CC"
+          # تقليل عدد العمليات المتوازية لتجنب الـ Crash
+          export GOMAXPROCS=2
           
           go mod download
+          
+          # بناء السيرفر مع تعطيل الـ PIE مؤقتاً لضمان التوافق
           go build -v -trimpath \
-            -tags "netgo osusergo static_build" \
             -ldflags "-s -w -extldflags '-static'" \
             -o sliver-server-android ./server
-
-      - name: Upload result
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: sliver-android-binary
+          name: sliver-binary
           path: sliver-server-android
