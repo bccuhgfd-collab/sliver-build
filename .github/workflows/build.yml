@@ -17,20 +17,17 @@ jobs:
 
       - name: The Master Fix & Stealth Prep
         run: |
-          # حقن الدوال في أول ملف Go يجده لضمان التعريف العالمي
-          TARGET_FILE=$(find . -name "version.go" | head -n 1)
-          if [ -z "$TARGET_FILE" ]; then TARGET_FILE=$(find . -maxdepth 3 -name "*.go" | head -n 1); fi
-          echo "Injecting into $TARGET_FILE"
-          echo -e "\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return \"\" }" >> "$TARGET_FILE"
+          # حقن الدوال في ملفات الحزم الرئيسية لضمان ظهورها للـ Compiler
+          find . -maxdepth 3 -name "*.go" -exec sed -i '$ a func setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' {} +
           
-          # إنشاء مجلد log والملف كاحتياط إضافي
-          mkdir -p log
-          echo -e "package log\n\nfunc setupLog() {}" > log/log.go
+          # التأكد من تحميل التبعيات (Dependencies)
+          go mod tidy
 
       - name: Heavyweight Stealth Compilation
         run: |
-          go build -ldflags "-s -w" -o sliver-weapon
-          
+          # تجميع الـ Client كبداية لأنه الأهم
+          go build -ldflags "-s -w" -o sliver-weapon .
+
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
