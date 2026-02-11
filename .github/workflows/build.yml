@@ -1,45 +1,25 @@
-name: Sliver_ARM64_Autonomous_Build
+name: Sliver_ARM64_Universal_Success
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Your Repo
+      - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup Go Environment
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-
-      - name: Autonomous Preparation & Patching
+      - name: Build inside Sliver-Builder Container
         run: |
-          # 1. جلب الكود المصدري لـ Sliver
-          git clone --depth 1 https://github.com/BishopFox/sliver source_code
-          
-          # 2. إنشاء ملفات الـ Assets المفقودة (خدعة المترجم)
-          mkdir -p source_code/server/assets
-          cat <<EOT > source_code/server/assets/assets.go
-          package assets
-          import "embed"
-          //go:embed *
-          var AssetsFs embed.FS
-          EOT
-          touch source_code/server/assets/placeholder.txt
+          # استخدام حاوية بناء Sliver الرسمية لحل كافة مشاكل التبعيات والـ Assets
+          docker run --rm -v ${{ github.workspace }}:/out bishopfox/sliver-build:latest \
+          /bin/bash -c "git clone --depth 1 https://github.com/BishopFox/sliver /sliver && \
+          cd /sliver && \
+          export GOOS=linux GOARCH=arm64 CGO_ENABLED=0 && \
+          make server && \
+          cp sliver-server /out/sliver-server-arm64"
 
-      - name: Heavyweight Compilation (ARMv8)
-        env:
-          CGO_ENABLED: 0
-          GOOS: linux
-          GOARCH: arm64
-        run: |
-          cd source_code
-          go mod download
-          go build -v -trimpath -ldflags "-s -w" -o ../sliver-server-arm64 ./server
-
-      - name: Upload Finished Weaponry
+      - name: Upload The Real Beast
         uses: actions/upload-artifact@v4
         with:
-          name: sliver-full-arm64
+          name: sliver-real-arm64
           path: sliver-server-arm64
