@@ -16,24 +16,20 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Smart Stealth Injection
+      - name: Nuclear Stealth Injection
         run: |
-          # العثور على الملف
-          TARGET_FILE=$(find . -name "version.go" | head -n 1)
-          echo "Targeting: $TARGET_FILE"
-          
-          # استخراج اسم الحزمة الأصلي للملف لضمان عدم حدوث تضارب
-          PKG_NAME=$(grep "package " $TARGET_FILE | head -n 1)
-          
-          # إعادة كتابة الملف بالكامل مع الحفاظ على الحزمة وإضافة دوالنا
-          echo "$PKG_NAME" > $TARGET_FILE.tmp
-          echo -e '\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' >> $TARGET_FILE.tmp
-          mv $TARGET_FILE.tmp $TARGET_FILE
-          
-          cat $TARGET_FILE
+          # حقن الدوال في كل ملف version.go مع ضمان عدم تكرارها برمجياً في نفس الحزمة
+          # سنستخدم شرطاً بسيطاً: إذا كان الملف لا يحتوي على الدالة، أضفها
+          find . -name "*.go" -exec grep -l "package " {} \; | xargs -I {} sh -c 'if ! grep -q "setupLog" {}; then echo -e "\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return \"\" }" >> {}; fi'
 
       - name: Heavyweight Stealth Compilation
         run: |
           go mod tidy
-          # بناء الـ server تحديداً لأنه الهدف الرئيسي
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 ./sliver-server
+          # محاولة بناء السيرفر مع تجاهل الأخطاء البسيطة في الموديلات
+          GOOS=linux GOARCH=arm64 go build -v -o sliver-weapon-arm64 ./sliver-server
+
+      - name: Upload Finished Weapon
+        uses: actions/upload-artifact@v4
+        with:
+          name: sliver-weapon-arm64
+          path: ./sliver-weapon-arm64
