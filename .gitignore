@@ -1,0 +1,11 @@
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+sliver-*
+
+# Temporary files
+*.log
+.DS_Store
