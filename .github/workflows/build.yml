@@ -16,14 +16,15 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Heavyweight Stealth Compilation
+      - name: Ultimate Compilation
         run: |
-          go mod tidy
-          # استخدام الـ Linker Flags لتغيير النسخة برمجياً دون تعديل الملفات
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w -X 'github.com/bishopfox/sliver/util/version.FullVersion=FINAL_VICTORY_V1'" -o sliver-weapon-arm64 ./sliver-server
+          go mod download
+          # بناء المشروع بالكامل من الجذر لضمان عدم وجود أخطاء في المسارات
+          # وسيتم تسمية المخرج sliver-server-arm64
+          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-server-arm64 .
 
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
           name: sliver-weapon-arm64
-          path: ./sliver-weapon-arm64
+          path: ./sliver-server-arm64
