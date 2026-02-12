@@ -16,25 +16,19 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Top-Level Stealth Injection
+      - name: God-Mode Patching
         run: |
-          # العثور على ملف main.go
-          TARGET_MAIN=$(find . -maxdepth 2 -name "main.go" | head -n 1)
-          
-          # الحقن فوراً بعد سطر الـ package لضمان السلامة البرمجية
-          sed -i '/package main/a \
-          func setupLog() {}\
-          func GetTrafficEncoderDir() string { return "" }' $TARGET_MAIN
-          
-          echo "Verifying Injection in $TARGET_MAIN:"
-          head -n 15 $TARGET_MAIN
+          # بدلاً من الإضافة، سنقوم بتعطيل أي فحص للنسخة أو لوجات قد تعيقنا
+          # سنبحث عن ملفات الـ version ونفرغها من محتواها الضار
+          find . -name "version.go" -exec sed -i 's/func setupLog().*/func setupLog() {}/g' {} +
+          find . -name "version.go" -exec sed -i 's/func GetTrafficEncoderDir().*/func GetTrafficEncoderDir() string { return "" }/g' {} +
 
       - name: Heavyweight Stealth Compilation
         run: |
           go mod tidy
-          # بناء السيرفر مع أعلام بناء قوية
-          GOOS=linux GOARCH=arm64 go build -v -o sliver-weapon-arm64 .
-
+          # بناء السيرفر الخام لـ ARM64
+          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 ./sliver-server
+          
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
