@@ -16,13 +16,14 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Victory Compilation
+      - name: Automated Search and Build
         run: |
           go mod download
-          # السر هنا: استخدام -tags noassets لتجاوز ملفات الـ UI المفقودة
-          # وتحديد المسار إلى مجلد السيرفر مباشرة
-          GOOS=linux GOARCH=arm64 go build -v -tags noassets -ldflags "-s -w" -o sliver-server-arm64 ./sliver-server
-          
+          # البحث عن مكان ملف الـ main الحقيقي للسيرفر وبنائه
+          MAIN_PATH=$(find . -name "main.go" -exec grep -l "func main" {} + | grep -E "server|main.go" | head -n 1)
+          echo "Found main at: $MAIN_PATH"
+          GOOS=linux GOARCH=arm64 go build -v -tags noassets -ldflags "-s -w" -o sliver-server-arm64 $MAIN_PATH
+
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
