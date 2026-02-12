@@ -16,12 +16,20 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Ultimate Compilation
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -p -y mingw-w64 binutils-mingw-w64 g++-mingw-w64
+
+      - name: The Master Build (Using Make)
         run: |
           go mod download
-          # بناء المشروع بالكامل من الجذر لضمان عدم وجود أخطاء في المسارات
-          # وسيتم تسمية المخرج sliver-server-arm64
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-server-arm64 .
+          # تنفيذ بناء السيرفر لـ ARM64 عبر الماك
+          # الماك سيقوم بتوليد الـ Assets تلقائياً
+          GOOS=linux GOARCH=arm64 make server
+          
+          # التأكد من تسمية الملف المنتج بشكل صحيح للرفع
+          mv sliver-server sliver-server-arm64 || true
 
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
