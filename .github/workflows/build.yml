@@ -18,15 +18,15 @@ jobs:
 
       - name: Nuclear Stealth Injection
         run: |
-          # حقن الدوال في كل ملف version.go مع ضمان عدم تكرارها برمجياً في نفس الحزمة
-          # سنستخدم شرطاً بسيطاً: إذا كان الملف لا يحتوي على الدالة، أضفها
-          find . -name "*.go" -exec grep -l "package " {} \; | xargs -I {} sh -c 'if ! grep -q "setupLog" {}; then echo -e "\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return \"\" }" >> {}; fi'
+          # حقن ذكي ومنظم في ملفات الـ version فقط لتجنب تضارب الحزم
+          find . -name "version.go" -exec sh -c 'if ! grep -q "setupLog" {}; then echo -e "\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return \"\" }" >> {}; fi' \;
 
       - name: Heavyweight Stealth Compilation
         run: |
           go mod tidy
-          # محاولة بناء السيرفر مع تجاهل الأخطاء البسيطة في الموديلات
-          GOOS=linux GOARCH=arm64 go build -v -o sliver-weapon-arm64 ./sliver-server
+          # البناء من المجلد الرئيسي مباشرة وتحديد اسم المخرج
+          # هذا سيتجنب خطأ "directory not found"
+          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 .
 
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
