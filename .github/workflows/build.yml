@@ -16,18 +16,26 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Nuclear Stealth Injection
+      - name: Surgical Stealth Injection
         run: |
-          # حقن ذكي ومنظم في ملفات الـ version فقط لتجنب تضارب الحزم
-          find . -name "version.go" -exec sh -c 'if ! grep -q "setupLog" {}; then echo -e "\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return \"\" }" >> {}; fi' \;
+          # 1. تنظيف أي محاولات سابقة (لضمان بيئة نظيفة)
+          git checkout . 
+          
+          # 2. إنشاء ملف مستقل تماماً لعدم تكرار الدوال
+          mkdir -p ./util/stealth
+          echo -e 'package stealth\n\nfunc SetupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' > ./util/stealth/stealth.go
+          
+          # 3. حقن استدعاء واحد فقط في ملف رئيسي لضمان الربط
+          # سنبحث عن ملف يحتوي على main ونضيف اسم الحزمة الجديد
+          MAIN_FILE=$(grep -l "package main" main.go || find . -name "main.go" | head -n 1)
+          sed -i '/package main/a import _ "github.com/bishopfox/sliver/util/stealth"' $MAIN_FILE
 
       - name: Heavyweight Stealth Compilation
         run: |
           go mod tidy
-          # البناء من المجلد الرئيسي مباشرة وتحديد اسم المخرج
-          # هذا سيتجنب خطأ "directory not found"
+          # بناء السيرفر من المسار الصحيح المكتشف في السجلات السابقة
           GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 .
-
+          
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
