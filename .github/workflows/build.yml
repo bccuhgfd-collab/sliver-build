@@ -16,19 +16,24 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Internal Stealth Injection
+      - name: Top-Level Stealth Injection
         run: |
-          # العثور على ملف main.go الرئيسي وحقن الدوال في نهايته مباشرة
-          # هذا يضمن أن الدوال تتبع package main ولن تسبب أي تضارب
+          # العثور على ملف main.go
           TARGET_MAIN=$(find . -maxdepth 2 -name "main.go" | head -n 1)
-          echo -e '\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' >> $TARGET_MAIN
-          echo "Success: Injected into $TARGET_MAIN"
+          
+          # الحقن فوراً بعد سطر الـ package لضمان السلامة البرمجية
+          sed -i '/package main/a \
+          func setupLog() {}\
+          func GetTrafficEncoderDir() string { return "" }' $TARGET_MAIN
+          
+          echo "Verifying Injection in $TARGET_MAIN:"
+          head -n 15 $TARGET_MAIN
 
       - name: Heavyweight Stealth Compilation
         run: |
           go mod tidy
-          # البناء مباشرة من الجذر
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 .
+          # بناء السيرفر مع أعلام بناء قوية
+          GOOS=linux GOARCH=arm64 go build -v -o sliver-weapon-arm64 .
 
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
