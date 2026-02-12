@@ -16,17 +16,16 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: The Master Fix & Stealth Prep
+      - name: Precise Stealth Injection
         run: |
-          # إصلاح أمر البحث والحقن ليتجنب خطأ الـ Syntax
-          find . -name "version.go" -exec sed -i '$ a \
-          func setupLog() {}\
-          func GetTrafficEncoderDir() string { return "" }' {} \;
+          # بدلاً من البحث في كل الملفات، سنحقن فقط في الملف الرئيسي المسؤول عن النسخة
+          # وهذا يمنع تكرار الدوال (Redeclaration error)
+          echo -e 'package version\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' > ./util/version/version.go
 
       - name: Heavyweight Stealth Compilation
         run: |
-          go mod download
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64
+          go mod tidy
+          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 ./sliver-server
 
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
