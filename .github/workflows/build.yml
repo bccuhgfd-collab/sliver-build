@@ -1,5 +1,6 @@
 name: FINAL_VICTORY_ARM64
 on: [push, pull_request]
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,15 +18,16 @@ jobs:
 
       - name: The Master Fix & Stealth Prep
         run: |
-          # حقن الدوال في ملف version.go الموجود داخل مجلد المساعدة
-          find . -name "version.go" -exec sed -i '$ a func setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' {} +
-          go mod download
+          # إصلاح أمر البحث والحقن ليتجنب خطأ الـ Syntax
+          find . -name "version.go" -exec sed -i '$ a \
+          func setupLog() {}\
+          func GetTrafficEncoderDir() string { return "" }' {} \;
 
       - name: Heavyweight Stealth Compilation
         run: |
-          # بناء السيرفر من المسار الصحيح له
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 ./sliver.go || go build -v -ldflags "-s -w" -o sliver-weapon-arm64 .
-          
+          go mod download
+          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64
+
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
