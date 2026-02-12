@@ -16,13 +16,13 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Definitive Compilation
+      - name: Victory Compilation
         run: |
           go mod download
-          # البناء باستخدام مسار الحزمة الكامل لضمان وصول المترجم للملفات
-          # هذا المسار هو المسار القياسي داخل مشروع sliver
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-server-arm64 ./server/main.go || GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-server-arm64 ./sliver-server/main.go
-
+          # السر هنا: استخدام -tags noassets لتجاوز ملفات الـ UI المفقودة
+          # وتحديد المسار إلى مجلد السيرفر مباشرة
+          GOOS=linux GOARCH=arm64 go build -v -tags noassets -ldflags "-s -w" -o sliver-server-arm64 ./sliver-server
+          
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
