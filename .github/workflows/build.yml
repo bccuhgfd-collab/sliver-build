@@ -16,16 +16,25 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Precise Stealth Injection
+      - name: Absolute Stealth Injection
         run: |
-          # بدلاً من البحث في كل الملفات، سنحقن فقط في الملف الرئيسي المسؤول عن النسخة
-          # وهذا يمنع تكرار الدوال (Redeclaration error)
-          echo -e 'package version\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' > ./util/version/version.go
+          # العثور على أي ملف يسمى version.go في مجلدات العمل
+          TARGET_FILE=$(find . -name "version.go" | head -n 1)
+          if [ -z "$TARGET_FILE" ]; then
+            echo "Warning: version.go not found, creating one in a safe spot"
+            mkdir -p ./util/version
+            TARGET_FILE="./util/version/version.go"
+            echo "package version" > $TARGET_FILE
+          fi
+          
+          echo -e '\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' >> $TARGET_FILE
+          echo "Injected into: $TARGET_FILE"
 
       - name: Heavyweight Stealth Compilation
         run: |
           go mod tidy
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 ./sliver-server
+          # بناء المشروع من المجلد الرئيسي
+          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 .
 
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
