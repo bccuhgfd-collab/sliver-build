@@ -17,19 +17,23 @@ jobs:
 
       - name: The Master Fix & Stealth Prep
         run: |
-          # حقن الدوال في ملفات الحزم الرئيسية لضمان ظهورها للـ Compiler
-          find . -maxdepth 3 -name "*.go" -exec sed -i '$ a func setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' {} +
+          # حقن الدوال في ملف واحد فقط مضمون الوجود والتأثير
+          TARGET_FILE="sliver.go"
+          if [ ! -f "$TARGET_FILE" ]; then TARGET_FILE=$(find . -maxdepth 1 -name "*.go" | head -n 1); fi
           
-          # التأكد من تحميل التبعيات (Dependencies)
-          go mod tidy
+          echo "Injecting into $TARGET_FILE"
+          echo -e "\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return \"\" }" >> "$TARGET_FILE"
+          
+          # تحميل المكتبات المطلوبة
+          go mod download
 
       - name: Heavyweight Stealth Compilation
         run: |
-          # تجميع الـ Client كبداية لأنه الأهم
-          go build -ldflags "-s -w" -o sliver-weapon .
-
+          # بناء السيرفر والعميل لضمان نجاح العملية
+          go build -v -ldflags "-s -w" -o sliver-server .
+          
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
-          name: sliver-weapon
-          path: ./sliver-weapon
+          name: sliver-server
+          path: ./sliver-server
