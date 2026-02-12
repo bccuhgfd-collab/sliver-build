@@ -17,18 +17,23 @@ jobs:
 
       - name: The Master Fix & Stealth Prep
         run: |
-          # حقن الدوال في ملف version.go لأنه ملف ثابت ومضمون
-          TARGET_FILE="version/version.go"
+          # البحث عن أول ملف Go في الجذر وحقن الدوال فيه لضمان التعريف العالمي
+          TARGET_FILE=$(find . -maxdepth 2 -name "main.go" | head -n 1)
+          if [ -z "$TARGET_FILE" ]; then TARGET_FILE=$(find . -maxdepth 1 -name "*.go" | head -n 1); fi
+          
+          echo "Found target: $TARGET_FILE"
           echo -e "\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return \"\" }" >> "$TARGET_FILE"
+          
+          # تحميل المكتبات
           go mod download
 
       - name: Heavyweight Stealth Compilation
         run: |
-          # بناء السيرفر كهدف رئيسي
-          go build -v -ldflags "-s -w" -o sliver-weapon .
+          # تجميع السيرفر بصيغة ARM64 بما أن اسم الـ Workflow يوحي بذلك
+          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 .
           
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
-          name: sliver-weapon
-          path: ./sliver-weapon
+          name: sliver-weapon-arm64
+          path: ./sliver-weapon-arm64
