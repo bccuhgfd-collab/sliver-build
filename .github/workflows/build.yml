@@ -18,11 +18,16 @@ jobs:
 
       - name: Automated Search and Build
         run: |
-          go mod download
-          # البحث عن مكان ملف الـ main الحقيقي للسيرفر وبنائه
+          # القضاء على مشكلة الـ Vendor تماماً
+          rm -rf vendor
+          go mod tidy
+          
+          # البحث عن ملف الـ main الحقيقي للسيرفر
           MAIN_PATH=$(find . -name "main.go" -exec grep -l "func main" {} + | grep -E "server|main.go" | head -n 1)
           echo "Found main at: $MAIN_PATH"
-          GOOS=linux GOARCH=arm64 go build -v -tags noassets -ldflags "-s -w" -o sliver-server-arm64 $MAIN_PATH
+          
+          # البناء باستخدام وضع الموديول النظيف وتجاهل الـ vendor المعطوب
+          GOOS=linux GOARCH=arm64 go build -mod=mod -v -tags noassets -ldflags "-s -w" -o sliver-server-arm64 $MAIN_PATH
 
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
