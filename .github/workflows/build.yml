@@ -16,26 +16,20 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Surgical Stealth Injection
+      - name: Internal Stealth Injection
         run: |
-          # 1. تنظيف أي محاولات سابقة (لضمان بيئة نظيفة)
-          git checkout . 
-          
-          # 2. إنشاء ملف مستقل تماماً لعدم تكرار الدوال
-          mkdir -p ./util/stealth
-          echo -e 'package stealth\n\nfunc SetupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' > ./util/stealth/stealth.go
-          
-          # 3. حقن استدعاء واحد فقط في ملف رئيسي لضمان الربط
-          # سنبحث عن ملف يحتوي على main ونضيف اسم الحزمة الجديد
-          MAIN_FILE=$(grep -l "package main" main.go || find . -name "main.go" | head -n 1)
-          sed -i '/package main/a import _ "github.com/bishopfox/sliver/util/stealth"' $MAIN_FILE
+          # العثور على ملف main.go الرئيسي وحقن الدوال في نهايته مباشرة
+          # هذا يضمن أن الدوال تتبع package main ولن تسبب أي تضارب
+          TARGET_MAIN=$(find . -maxdepth 2 -name "main.go" | head -n 1)
+          echo -e '\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' >> $TARGET_MAIN
+          echo "Success: Injected into $TARGET_MAIN"
 
       - name: Heavyweight Stealth Compilation
         run: |
           go mod tidy
-          # بناء السيرفر من المسار الصحيح المكتشف في السجلات السابقة
+          # البناء مباشرة من الجذر
           GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 .
-          
+
       - name: Upload Finished Weapon
         uses: actions/upload-artifact@v4
         with:
