@@ -16,28 +16,24 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Absolute Stealth Injection
+      - name: Smart Stealth Injection
         run: |
-          # العثور على أي ملف يسمى version.go في مجلدات العمل
+          # العثور على الملف
           TARGET_FILE=$(find . -name "version.go" | head -n 1)
-          if [ -z "$TARGET_FILE" ]; then
-            echo "Warning: version.go not found, creating one in a safe spot"
-            mkdir -p ./util/version
-            TARGET_FILE="./util/version/version.go"
-            echo "package version" > $TARGET_FILE
-          fi
+          echo "Targeting: $TARGET_FILE"
           
-          echo -e '\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' >> $TARGET_FILE
-          echo "Injected into: $TARGET_FILE"
+          # استخراج اسم الحزمة الأصلي للملف لضمان عدم حدوث تضارب
+          PKG_NAME=$(grep "package " $TARGET_FILE | head -n 1)
+          
+          # إعادة كتابة الملف بالكامل مع الحفاظ على الحزمة وإضافة دوالنا
+          echo "$PKG_NAME" > $TARGET_FILE.tmp
+          echo -e '\nfunc setupLog() {}\nfunc GetTrafficEncoderDir() string { return "" }' >> $TARGET_FILE.tmp
+          mv $TARGET_FILE.tmp $TARGET_FILE
+          
+          cat $TARGET_FILE
 
       - name: Heavyweight Stealth Compilation
         run: |
           go mod tidy
-          # بناء المشروع من المجلد الرئيسي
-          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 .
-
-      - name: Upload Finished Weapon
-        uses: actions/upload-artifact@v4
-        with:
-          name: sliver-weapon-arm64
-          path: ./sliver-weapon-arm64
+          # بناء الـ server تحديداً لأنه الهدف الرئيسي
+          GOOS=linux GOARCH=arm64 go build -v -ldflags "-s -w" -o sliver-weapon-arm64 ./sliver-server
