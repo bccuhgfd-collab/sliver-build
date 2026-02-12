@@ -1,6 +1,10 @@
 package main
-import "fmt"
-var assetsFs = "Sliver Mock Assets"
+
+import (
+    "fmt"
+    _ "github.com/sirupsen/logrus"
+)
+
 func main() {
     fmt.Println("Sliver Build System: Active")
 }
