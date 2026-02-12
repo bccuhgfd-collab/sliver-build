@@ -1,3 +1,3 @@
-module github.com/bccuhgfd-collab/sliver-build
+module sliver_config
 
 go 1.25.6
